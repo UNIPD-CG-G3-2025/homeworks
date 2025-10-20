@@ -27,7 +27,7 @@ compute_MAF <- function(SNPdata) {
   return(q)
 }
 
-HWE_test <- function(SNPdata, pdf_file_name, q) {
+HWE_test <- function(SNPdata, pdf_file_name) {
   
   # Count the alleles in patients
   nAA_p <- rowSums(SNPdata == 0, na.rm = TRUE)
@@ -38,6 +38,7 @@ HWE_test <- function(SNPdata, pdf_file_name, q) {
   N_p <- nAA_p + nAa_p + naa_p
   
   # Calculate p
+  q <- compute_MAF(SNPdata)
   p <- 1 - q
   
   
@@ -59,9 +60,9 @@ HWE_test <- function(SNPdata, pdf_file_name, q) {
   
   
   # Boxplot of the computed values
-  pdf(file = pdf_file_name)
+  #pdf(file = pdf_file_name)
   boxplot(p_val, main = "HWE - PValues Boxplot", ylab = 'p-value', xlab = "SNPs")
-  dev.off()
+  #dev.off()
   
   # Returning p-vals
   return(p_val)
@@ -76,10 +77,17 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
   ctrl <- SNPdata[, indCTRL, drop = FALSE]
   ps <- SNPdata[, -indCTRL, drop = FALSE]
   
-  q <- compute_MAF(ctrl)
+  MAF <- compute_MAF(ctrl) #SANI
+  HWE <- HWE_test(ctrl, pdf_file_name = 'test_boxplot.pdf', q = MAF)
+  
+  OK_maf <- MAF >= MAFth
+  OK_hwe <- HWE >= HWEalpha
+  
+  OK <- OK_maf & OK_hwe
+  
+  SNPdata[OK, , drop = FALSE]
   
   
-  HWE_test(ps, pdf_file_name = 'test_boxplot.pdf', q)
   
   return(0)
 }
