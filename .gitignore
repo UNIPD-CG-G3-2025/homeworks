@@ -1,3 +1,8 @@
 *.dat
 *.csv
 *.txt
+
+*-tester.R
+*-tester.Rmd
+*-tester.r
+*-tester.rmd
