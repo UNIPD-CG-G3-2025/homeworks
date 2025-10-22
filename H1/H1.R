@@ -15,6 +15,18 @@
 
 ############################################################
 
+#compute_MAF <- function(SNPdata) {
+#  nAA_c <- rowSums(SNPdata == 0, na.rm = TRUE)
+#  nAa_c <- rowSums(SNPdata == 1, na.rm = TRUE)
+#  naa_c <- rowSums(SNPdata == 2, na.rm = TRUE)
+#  
+#  N_c <- nAA_c + nAa_c + naa_c
+#  
+#  q <- (2*naa_c + nAa_c ) / pmax(2*N_c, 1)
+#  
+#  return(q)
+#}
+
 compute_MAF <- function(SNPdata) {
   nAA_c <- rowSums(SNPdata == 0, na.rm = TRUE)
   nAa_c <- rowSums(SNPdata == 1, na.rm = TRUE)
@@ -22,10 +34,36 @@ compute_MAF <- function(SNPdata) {
   
   N_c <- nAA_c + nAa_c + naa_c
   
+  # Evita divisione 0/0
+  # Possiamo mettere il nome 'q' o 'MAF' ai valori del vettore?
   q <- (2*naa_c + nAa_c ) / pmax(2*N_c, 1)
+  
+  # Printing on terminal the number of SNPs and subjects
+  # Non abbiamo capito se vuole contingency table oppure solo nrighe ed ncol
+  # Tabella di contingenza
+  SNPs_and_subjects <- data.frame(SNP = rownames(SNPdata),
+                                  AA = nAA_c,
+                                  Aa = nAa_c,
+                                  aa = naa_c,
+                                  row.names = NULL)
+  
+  # Qui abbiamo la contingency table completa con tanto di MAF (q):
+  # SNPs_and_subjects$q <- q
+  
+  
+  # Calcolo di numero righe (SNPs) e numero colonne (soggetti)
+  nSNPs <- dim(SNPdata)[1]
+  nSubj <- dim(SNPdata)[2]
+  
+  # Qui dentro ci sono i possibili risultati che può chiedere
+  # results <- c(SNPs_and_subjects, nSNPs, nSubj, q)
+  
+  print(paste('The number of SNPs is:', nSNPs))
+  print(paste('The number of Subjects is:', nSubj))
   
   return(q)
 }
+
 
 HWE_test <- function(SNPdata, pdf_file_name) {
   
