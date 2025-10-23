@@ -15,18 +15,6 @@
 
 ############################################################
 
-#compute_MAF <- function(SNPdata) {
-#  nAA_c <- rowSums(SNPdata == 0, na.rm = TRUE)
-#  nAa_c <- rowSums(SNPdata == 1, na.rm = TRUE)
-#  naa_c <- rowSums(SNPdata == 2, na.rm = TRUE)
-#  
-#  N_c <- nAA_c + nAa_c + naa_c
-#  
-#  q <- (2*naa_c + nAa_c ) / pmax(2*N_c, 1)
-#  
-#  return(q)
-#}
-
 compute_MAF <- function(SNPdata) {
   nAA_c <- rowSums(SNPdata == 0, na.rm = TRUE)
   nAa_c <- rowSums(SNPdata == 1, na.rm = TRUE)
