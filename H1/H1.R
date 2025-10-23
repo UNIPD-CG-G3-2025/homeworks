@@ -22,10 +22,36 @@ compute_MAF <- function(SNPdata) {
   
   N_c <- nAA_c + nAa_c + naa_c
   
+  # Evita divisione 0/0
+  # Possiamo mettere il nome 'q' o 'MAF' ai valori del vettore?
   q <- (2*naa_c + nAa_c ) / pmax(2*N_c, 1)
+  
+  # Printing on terminal the number of SNPs and subjects
+  # Non abbiamo capito se vuole contingency table oppure solo nrighe ed ncol
+  # Tabella di contingenza
+  SNPs_and_subjects <- data.frame(SNP = rownames(SNPdata),
+                                  AA = nAA_c,
+                                  Aa = nAa_c,
+                                  aa = naa_c,
+                                  row.names = NULL)
+  
+  # Qui abbiamo la contingency table completa con tanto di MAF (q):
+  # SNPs_and_subjects$q <- q
+  
+  
+  # Calcolo di numero righe (SNPs) e numero colonne (soggetti)
+  nSNPs <- dim(SNPdata)[1]
+  nSubj <- dim(SNPdata)[2]
+  
+  # Qui dentro ci sono i possibili risultati che può chiedere
+  # results <- c(SNPs_and_subjects, nSNPs, nSubj, q)
+  
+  print(paste('The number of SNPs is:', nSNPs))
+  print(paste('The number of Subjects is:', nSubj))
   
   return(q)
 }
+
 
 HWE_test <- function(SNPdata, pdf_file_name) {
   
@@ -44,19 +70,19 @@ HWE_test <- function(SNPdata, pdf_file_name) {
   
   # Calculate Chi-Square
   chisq <- ((nAA_p - (N_p*p^2))^2) / (N_p*p^2) 
-            + ((nAa_p - (N_p*p*q*2))^2) / (N_p*p*q*2) 
-            + ((naa_p - (N_p*q^2))^2) / (N_p*q^2)
+  + ((nAa_p - (N_p*p*q*2))^2) / (N_p*p*q*2) 
+  + ((naa_p - (N_p*q^2))^2) / (N_p*q^2)
   
   
   # And relative p-value
-  p_val <- pchisq(q = chisq, df = 1)
+  p_val <- 1 - pchisq(q = chisq, df = 1)
   names(p_val) <- rownames(SNPdata)
   
   
   #Find and print the terminal the name(s) of the SNP(s) having the lowest p-value
   minp <- min(p_val, na.rm = TRUE)
   snp_min <- names(p_val)[p_val == minp]
-  cat("Smallest p-value SNP: ", snp_min, " -> with p-value = ", sprintf("%.3e", minp), "\n")
+  cat("Smallest p-value SNP: [", snp_min, "] -> with p-value = [", sprintf("%.3e", minp), "]\n")
   
   
   # Boxplot of the computed values
@@ -78,7 +104,7 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
   ps <- SNPdata[, -indCTRL, drop = FALSE]
   
   MAF <- compute_MAF(ctrl) #SANI
-  HWE <- HWE_test(ctrl, pdf_file_name = 'test_boxplot.pdf', q = MAF)
+  HWE <- HWE_test(ctrl, pdf_file_name = 'test_boxplot.pdf')
   
   OK_maf <- MAF >= MAFth
   OK_hwe <- HWE >= HWEalpha
@@ -93,7 +119,6 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
 }
 
 SNP_association_test("SNPdata.txt", 1201:2000)
-
 
 
 
