@@ -87,7 +87,7 @@ HWE_test <- function(SNPdata, pdf_file_name) {
   
   
   # And relative p-value
-  p_val <- pchisq(q = chisq, df = 1)
+  p_val <- 1 - pchisq(q = chisq, df = 1)
   names(p_val) <- rownames(SNPdata)
   
   
