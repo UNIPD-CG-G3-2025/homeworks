@@ -1,7 +1,7 @@
 ############################################################
 # Homework 1 - SNP Data Analysis
 # Course: Computational Genomics 2025/2026
-# Date: 26/10/2025
+# Date: 1/11/2025
 #
 # Description:
 # This script implements three functions for SNP analysis:
@@ -20,14 +20,6 @@
 
 ############################################################
 
-# LOADING THE DATA BANANA
-
-#setwd("C:/Users/stell/OneDrive/Documenti/magistrale/CG")
-#bc <- read.table("SNPdata.dat", stringsAsFactors = T)
-
-#current_working_dir <- getwd()
-#setwd(current_working_dir)
-#bc <- read.csv("SNPdata.txt", sep = '\t')
 
 # FIRST FUNCTION
 
@@ -55,10 +47,6 @@ compute_MAF <- function(SNPdata) {
   return(q)
 }
 
-
-
-# PROVA CALCOLO BANANA
-#q<-compute_MAF(bc[,])
 
 
 
@@ -99,21 +87,23 @@ HWE_test <- function(SNPdata, pdf_file_name) {
   
   
   # Boxplot of the computed values
-  #pdf(file = pdf_file_name)
-  boxplot(p_val, main = "HWE - PValues Boxplot", ylab = 'p-value', xlab = "SNPs")
-  #dev.off()
+  pdf(file = pdf_file_name)
+  boxplot(p_val, 
+          main = "HWE: P-Values Boxplot",
+          ylab = 'p-value', 
+          xlab = "SNPs", 
+          col='firebrick')
+  dev.off()
   
   # Returning p-vals
   return(p_val)
 }
 
-#HWE<-HWE_test(bc[,])
 
 
 # THIRD FUNCTION
 
 SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
-  MIN_THR_COUNT <- 5
   
   SNPdata = as.matrix(read.table(filepath, 
                                  header = TRUE, 
@@ -130,35 +120,18 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
   SNPdata_filt<-SNPdata[na_snp,na_sub]
   
   ctrl <- SNPdata_filt[, indCTRL, drop = FALSE]
-  #nAA_ctrl <- rowSums(ctrl == 0, na.rm = TRUE)
-  #nAa_ctrl <- rowSums(ctrl == 1, na.rm = TRUE)
-  #naa_ctrl <- rowSums(ctrl == 2, na.rm = TRUE)
-  
-  #cond_ctrl <- nAA_ctrl < MIN_THR_COUNT | nAa_ctrl < MIN_THR_COUNT | naa_ctrl < MIN_THR_COUNT
-  #SNPdata_filt <- SNPdata_filt[cond_ctrl==F, , drop = FALSE]
-  
-  
   ps <- SNPdata_filt[, -indCTRL, drop = FALSE]
-  #nAA_ps <- rowSums(ctrl == 0, na.rm = TRUE)
-  #nAa_ps <- rowSums(ctrl == 1, na.rm = TRUE)
-  #naa_ps <- rowSums(ctrl == 2, na.rm = TRUE)
-  
-  #cond_ps <- nAA_ps < MIN_THR_COUNT | nAa_ps < MIN_THR_COUNT | naa_ps < MIN_THR_COUNT
-  #SNPdata_filt <- SNPdata_filt[cond_ps==F, , drop = FALSE]
   
   # Computing the Minor Allele Frequency and testing for HWE on the controls
   MAF <- compute_MAF(ctrl)
   OK_maf <- MAF < MAFth
   
   HWE <- HWE_test(ctrl, pdf_file_name = 'test_boxplot.pdf')
+  OK_hwe <- HWE < HWEalpha
   
   # Filtering for SNPs that have a MAF smaller than the threshold
   # and are not in HWE in the control population
-  
-  OK_hwe <- HWE < HWEalpha
-  
   OK <- OK_maf | OK_hwe
-  
   SNPdata_filt<-SNPdata_filt[OK==F, , drop = FALSE]
   
   
@@ -187,19 +160,23 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
                        row.names = rownames(SNPdata_filt))
   N_tot<-N_p+N_c
   
-  # Expected occurances:
+  # Expected occurrences:
   # totality of patients for AA, Aa and aa cases separately
   EX<-SNPs_p+SNPs_c
   # expectation for patients
   EX_p<-((EX/N_tot)*rowSums(SNPs_p))
   # expectation for controls
   EX_c<-((EX/N_tot)*rowSums(SNPs_c))
-
+  
+  # In order to perform a valid Chi^2 test, we need more than 5 occurrences 
+  # for each entry
   cond_c <- rowSums(EX_c < 5) == 0
   cond_p <- rowSums(EX_p < 5) == 0
   cond_all <- cond_p & cond_c
   
-  # Computing the Chi^2, handling NAs
+  # Computing the Chi^2. 
+  # NAs could rise from the division where the expected values for such genotype
+  # are 0: those cases will be filtered out in the next step
   c1<-(((SNPs_p-EX_p)^2)/EX_p)
   c1[is.na(c1)]<-0
   c2<-(((SNPs_c-EX_c)^2)/EX_c)
@@ -207,21 +184,14 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
   Chi<-rowSums(c1)+rowSums(c2)
   pval <-pchisq(q = Chi, df = 2, lower.tail = F)
   
-  # ragionare BANANA
-  #pval<- pval[cond_all==T, , drop = FALSE]
-  mat<-cbind(SNPs_c,SNPs_p,pval)
-  mat<- mat[cond_all==T, , drop = FALSE] #Filtering rows with count lower than THR
+  #Filtering rows with count lower than THR (set to 5 counts)
+  mat<- cbind(SNPs_c,SNPs_p,pval)
+  mat<- mat[cond_all==T, , drop = FALSE] 
   
+  # Adding the q-value to the matrix
   mat$qval<-mat$pval*(length(mat$pval))/rank(mat$pval)
   
-  #colnames(mat)<-c("AA_ctrl","Aa_ctrl","aa_ctrl","AA_case","Aa_case","aa_case","pval","qval")
+  mat <- data.matrix(mat)
   
   return(mat)
 }
-
-# togliere le prove di calcolo alla fine BANANA
-SNP_ass_test <- SNP_association_test("SNPdata.txt", 1201:2000)
-
-
-
-
