@@ -58,12 +58,12 @@ HWE_test <- function(SNPdata, pdf_file_name) {
   q <- compute_MAF(SNPdata)
   p <- 1 - q
   
-  # Count the alleles in patients
+  # Count the alleles in subjects
   nAA_p <- rowSums(SNPdata == 0, na.rm = TRUE)
   nAa_p <- rowSums(SNPdata == 1, na.rm = TRUE)
   naa_p <- rowSums(SNPdata == 2, na.rm = TRUE)
   
-  # Count the total alleles in patients
+  # Count the total alleles in subjects
   N_p <- nAA_p + nAa_p + naa_p
   
   # Calculate Chi-Square
@@ -189,7 +189,7 @@ SNP_association_test <- function(filepath, indCTRL, MAFth=0.01, HWEalpha=0.01) {
   mat<- mat[cond_all==T, , drop = FALSE] 
   
   # Adding the q-value to the matrix
-  mat$qval<-mat$pval*(length(mat$pval))/rank(mat$pval)
+  mat$qval<-mat$pval*(length(mat$pval))/rank(mat$pval, ties.method= "max")
   
   mat <- data.matrix(mat)
   
