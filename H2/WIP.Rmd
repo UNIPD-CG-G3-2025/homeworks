@@ -1,0 +1,131 @@
+---
+title: "WIP"
+author: 'Group #3'
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## F1
+
+1. Take as input
+  - exprData: a numeric data matrix that is supposed to have the same format of the raw count data provided in stem (i.e. genes’IDs on rows and subjects’IDs on columns)
+  - pdffilename: the name of the .pdf file where to save the plots
+  - pcolor: the color to be used to draw the points
+  - lcolor: the color to be used to draw the line
+
+2. Generates a .pdf file with MvA plots of each sample vs. sample 1 (one plot per page). For each plot:
+  - Provide meaningful names for the x-axis, y-axis and plot title.
+  - Draw a horizontal line corresponding to the x-axis (i.e. y = 0); the line must have as color the one specified in lcolor.
+  - Tune the size of the plot and the size/type of the points to make the plot readable.
+
+```{r}
+MvAplot <- function(exprData, pdffilename, pcolor="black", lcolor="red") {
+  reference <- exprData[1]
+  reference_name <- colnames(exprData)[1]
+  samples <- (length(exprData))
+  
+  pdf(file = pdffilename)
+  for(i in 2:samples){
+    current <- exprData[i]
+    
+    M<-(log2(reference)-log2(current))[[1]]
+    A<-((log2(reference)+log2(current))/2)[[1]]
+    
+    max_max <- max(M[!is.infinite(M)], na.rm=T)
+    max_min <- max(abs(M[!is.infinite(M)]), na.rm=T)
+    
+    ylim <- max(c(max_max, max_min), na.rm=T)
+    
+    plot(x = A, y = M,
+         pch = ".", col = pcolor,
+         ylim=c(-ylim, ylim),
+         main=paste("MvA plot of sample 1 (", reference_name, ") vs sample ",i, " (", colnames(exprData)[i], ")"),
+         xlab="M",
+         ylab="A",
+         )
+    abline(h = 0, col = lcolor)
+  }
+  
+  dev.off()
+}
+```
+
+### Test F1
+
+
+```{r pressure, echo=FALSE}
+DATA <- read.table("raw_count.txt", sep="\t", row.names=1, header=TRUE)
+MvAplot(DATA, "TEST.pdf")
+```
+
+## F2
+
+1. Takes as input
+  - exprData: a numeric data matrix that is supposed to have the same format of the raw count data provided in stem (i.e. genes’IDs on rows and subjects’IDs on columns)
+  - annot: a data frame that is supposed to have the same format of the annotation data provided in stem
+  - Mtrim: a number between 0 and 1 indicating the fraction of observations to be deleted from each end (positive and negative values) of the sorted vector M before calculating the mean (where Ms are the log ratios defined as in the MvA plot)
+  - Atrim: a vector of 2 elements indicating the lower and upper thresholds to trim the most extreme values of A (where A is the average in log2 scale) 
+
+2. The function TMMnorm()
+  - Scale the data by their sequencing depth and multiply by 10^6
+  - Calculates the scaling factors SF (with respect to sample 1) by trimming the most extreme values of A and taking the trimmed means of M values (suggestion: use the R function mean)
+  - Normalizes the data by their scaling factors SF with respect to sample 1
+  - Scale the genes by their length and multiply by 10^3
+  - Returns a list of 2 elements: i) the normalized matrix (in the original scale, not in log scale); ii) the vector of the scaling factors (in the original scale, not in log scale).
+
+
+```{r}
+TMMnorm <- function(exprData, annot, Mtrim = 0.02, Atrim = c(0,8)) {
+  seq_depths <- colSums(exprData)
+  exprData <- exprData / seq_depths * (10^6) # Va fatto anche sul primo???
+  
+  lengths <- annot[rownames(exprData), "Length"] #Estraggo le lunghezze, impostando a NA quelli missing
+  median_length <- median(annot$Length, na.rm = TRUE) #Estraggo la mediana
+  lengths[is.na(lengths)] <- median_length #La imposto come valore per i missing values
+  
+  
+  normalized <- log2(exprData) # mi porto in log per uniformare il calcolo
+  reference <- normalized[1]
+  samples <- (length(exprData))
+  
+  sfs <- rep(0, samples)
+  
+  for(i in 2:samples){
+    current <- normalized[i]
+    
+    M <- (reference - current)[[1]]
+    A <- ((reference + current)/2)[[1]]
+    
+    cond <- (A > Atrim[1] & A < Atrim[2])
+    M_filtered <- M[cond]
+    M_sorted <- sort(M_filtered)
+    
+    sfs[i] <- mean(M_sorted, trim = Mtrim, na.rm = T)
+    
+    normalized[,i] <- normalized[,i] + sfs[i]
+  }
+  
+  # Qui va iniziato lo scaling con la lunghezza e fatto x 10^3
+  normalized <- (2^normalized) * lengths / (10^3)  #In che scala??
+  
+  return (list(2^sfs, normalized)) #ritorno riportando in lineare
+}
+
+```
+
+### Test F1
+
+```{r}
+annotations <- read.table("gene_annot.txt", sep="\t", row.names=2, header=TRUE, quote = "\"")
+boxplot(annotations$Length)
+hist(annotations$Length)
+```
+
+```{r}
+norm <- TMMnorm(DATA, annotations)
+MvAplot(norm[[2]], "TEST_normalized.pdf")
+```
