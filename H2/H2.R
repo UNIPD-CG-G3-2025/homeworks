@@ -50,15 +50,13 @@ MvAplot <- function(exprData, pdffilename, pcolor="black", lcolor="red") {
 
 # Second Function
 TMMnorm <- function(exprData, annot, Mtrim=0.02, Atrim = c(0,8)) {
-  #scaling by the sequencing depth and
-  # abbiamo cambiato input --> possiamo considerare la prima colonna
+  #scaling by the sequencing depth and multiplying by 10^6
   
   SD<-colSums(exprData[,1:ncol(exprData)], na.rm = T)  # sequencing depth
-  data<-sweep(exprData[,1:ncol(exprData)],2,SD, FUN='/')*10^6 # OK
+  data<-sweep(exprData[,1:ncol(exprData)],2,SD, FUN='/')*10^6 
   
-  #rownames(data)<-exprData[,1]   # inutile in teoria rn
   
-  normData<-data   # inizializzo
+  normData<-data   
   
   #SCALING FACTORS
   ni<-ncol(data)
@@ -70,24 +68,22 @@ TMMnorm <- function(exprData, annot, Mtrim=0.02, Atrim = c(0,8)) {
     offset=0.0001
     M<-log2(data[,1]+offset)-log2(data[,i]+offset)
     A<-(log2(data[,1]+offset)+log2(data[,i]+offset))/2
-    
+    # computing the trimmed mean
     indA<-A>Atrim[1]&A<Atrim[2]
     SF[i]<-mean(M[indA], trim=Mtrim, na.rm=T)
     SF[i]<-2^(SF[i])
     normData[,i]<-normData[,i]*SF[i]
   }
-  # SF[1]<-2^(SF[1])
+  
   # Scaling for the length 
-  annot <- annot[match(rownames(exprData), rownames(annot)), ]# check ulteriore per matchare righe
+  annot <- annot[match(rownames(exprData), rownames(annot)), ] #check row names 
   median_length <- median(annot$Length, na.rm = TRUE)
   len<-annot$Length
   len[is.na(len)] <- median_length
   normData <- sweep((normData),1,len, FUN="/")*(10^3)
-  # let's add again the column with the names
-  # normData<-cbind(exprData[,1],normData)
+  
   # returning the list
   
-  #return(normData)
   l<-list(normData= normData,SF = SF)
   return(l)
 }
@@ -132,7 +128,7 @@ DEbyEdgeR <- function(rawdata, groups, alpha = 0.05) {
   
   # nDEGs: selected genes
   # Computing False Positives, True Positives, True Negatives, False Negatives and FDR
-  # BANANA: should we round them?
+  
   nDEGs <- sum(out$PValue < alpha)
   G0 <- 0.8*G
   FPs <- min(nDEGs, G0*alpha)
